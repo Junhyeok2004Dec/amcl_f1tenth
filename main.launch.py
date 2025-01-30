@@ -49,10 +49,10 @@ def generate_launch_description():
     container_name = LaunchConfiguration('container_name')
     use_respawn = LaunchConfiguration('use_respawn')
 
-    lifecycle_nodes = ['amcl', 'planner_server', 'behavior', 'behavior_server', 'bt_navigator']
+    lifecycle_nodes = ['amcl' , 'controller_server' , 'planner_server', 'behavior', ]
     
     remappings = [('/tf', 'tf'),
-                  ('/tf_static', 'tf_static')]``
+                  ('/tf_static', 'tf_static')]
 
     # URDF
     urdf = '/home/user/amcl_test/ego.urdf'
@@ -182,7 +182,7 @@ def generate_launch_description():
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
-                arguments=['--ros-args', '--log-level', 'log_level'],
+                arguments=['--ros-args',  ],
                 remappings=remappings)
                 
     ##################
@@ -197,35 +197,9 @@ def generate_launch_description():
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
-                arguments=['--ros-args', '--log-level', 'log_level'],
+                arguments=['--ros-args',  ],
                 remappings=remappings)
     
-    ########################
-    # local costmap Launch #
-    ########################
-    
-    local_costmap_launch = Node(
-                package='nav2_costmap_2d',
-                executable='costmap_server',
-                name='local_costmap_server',
-                output='screen',
-                parameters=[configured_params],
-                arguments=['--ros-args', '--log-level', 'log_level'],
-                remappings = remappings
-                )
-    
-    
-    
-    # Global Costmap Server
-    global_costmap_launch = Node(
-                package='nav2_costmap_2d',
-                executable='costmap_server',
-                name='global_costmap_server',
-                output='screen',
-                parameters=[configured_params],
-                arguments=['--ros-args', '--log-level', 'log_level'],
-                remappings = remappings
-                )
     
     controller_server_launch = Node(
             package='nav2_controller',
@@ -233,7 +207,7 @@ def generate_launch_description():
             name='controller_server',
             output='screen',
             parameters=[configured_params],
-            arguments=['--ros-args', '--log-level', 'log_level'],
+            arguments=['--ros-args',  ],
             remappings = remappings
             )
     
@@ -247,8 +221,7 @@ def generate_launch_description():
             amcl_launch,
             behavior_launch,
             planner_launch,
-            global_costmap_launch,
-            local_costmap_launch,
+            controller_server_launch,
             
             Node(
                 package='nav2_lifecycle_manager',
@@ -258,7 +231,8 @@ def generate_launch_description():
                 parameters=[
                     {'use_sim_time': use_sim_time},
                     {'autostart': autostart},
-                    {'node_names': lifecycle_nodes}
+                    {'node_names': lifecycle_nodes},
+                    {'managed_nodes': lifecycle_nodes}
                 ]
             ),
                 
@@ -266,70 +240,23 @@ def generate_launch_description():
         ]
     )
 
+    
     load_composable_nodes = LoadComposableNodes(
-        condition=IfCondition(use_composition),
-        target_container=container_name,
-        composable_node_descriptions=[
-            ComposableNode(
-                package='nav2_map_server',
-                plugin='nav2_map_server::MapServer',
-                name='map_server',
-                parameters=[configured_params],
-                remappings=remappings),
-            ComposableNode(
-                package='nav2_amcl',
-                plugin='nav2_amcl::AmclNode',
-                name='amcl',
-                parameters=[configured_params],
-                remappings=remappings),
-            ComposableNode(
-                package='nav2_bt_navigator',
-                plugin='nav2_bt_navigator::BtNavigator',
-                name='bt_navigator',
-                parameters=[configured_params],
-                remappings=remappings),
-            ComposableNode(
-                package='nav2_lifecycle_manager',
-                plugin='nav2_lifecycle_manager::LifecycleManager',
-                name='lifecycle_manager_localization',
-                parameters=[{'use_sim_time': use_sim_time,
-                             'autostart': autostart,
-                             'node_names': lifecycle_nodes}]),
-            ComposableNode(
-                package='nav2_planner',
-                plugin='nav2_planner::PlannerServer',
-                name='planner_server',
-                parameters=[configured_params],
-                remappings=remappings),
-            ComposableNode(
-                package='nav2_behaviors',
-                plugin='behavior_server::BehaviorServer',
-                name='behavior_server',
-                parameters=[configured_params],
-                remappings=remappings),
-            ComposableNode(
-                package='nav2_costmap_2d',
-                plugin='nav2_costmap_2d::Costmap2DROS',
-                name='global_costmap',
-                parameters=[configured_params],
-                remappings=remappings ),
-            ComposableNode(
-                package='nav2_costmap_2d',
-                plugin='nav2_costmap_2d::Costmap2DROS',
-                name='local_costmap',
-                parameters=[configured_params],
-                remappings=remappings ),
-            ComposableNode(
-                package='nav2_controller',
-                plugin='nav2_controller::ControllerServer',
-                name='controller_server',
-                parameters=[configured_params],
-                remappings=remappings ),
-                 
-            
-            
-        ],
+    condition=IfCondition(use_composition),
+    target_container=container_name,
+    composable_node_descriptions=[
+        ComposableNode(package='nav2_map_server', plugin='nav2_map_server::MapServer', name='map_server', parameters=[configured_params], remappings=remappings),
+        ComposableNode(package='nav2_amcl', plugin='nav2_amcl::AmclNode', name='amcl', parameters=[configured_params], remappings=remappings),
+        ComposableNode(package='nav2_bt_navigator', plugin='nav2_bt_navigator::BtNavigator', name='bt_navigator', parameters=[configured_params], remappings=remappings),
+        ComposableNode(package='nav2_lifecycle_manager', plugin='nav2_lifecycle_manager::LifecycleManager', name='lifecycle_manager_localization', parameters=[{'use_sim_time': use_sim_time, 'autostart': autostart, 'node_names': lifecycle_nodes}]),
+        ComposableNode(package='nav2_planner', plugin='nav2_planner::PlannerServer', name='planner_server', parameters=[configured_params], remappings=remappings),
+        ComposableNode(package='nav2_behaviors', plugin='behavior_server::BehaviorServer', name='behavior_server', parameters=[configured_params], remappings=remappings),
+        ComposableNode(package='nav2_costmap_2d', plugin='nav2_costmap_2d::Costmap2DROS', name='global_costmap', parameters=[configured_params], remappings=remappings),
+        ComposableNode(package='nav2_costmap_2d', plugin='nav2_costmap_2d::Costmap2DROS', name='local_costmap', parameters=[configured_params], remappings=remappings),
+        ComposableNode(package='nav2_controller', plugin='nav2_controller::ControllerServer', name='controller_server', parameters=[configured_params], remappings=remappings)
+    ]
     )
+    
 
     ld = LaunchDescription()
 
